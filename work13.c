@@ -22,6 +22,7 @@ read entire csv and its size and put it into a char array and separate by \n the
 2. creates and writes structs into a new data file
 guessing that within each read, you write that struct into a new file
 use a loop and read only the amount of bytes per line each time??
+new file can be .data
 */
 void read_csv() {
 }
