@@ -14,177 +14,176 @@ struct pop_entry {
   char boro[15];
 };
 
-struct pop_entry * make_entry(int year, int pop, char * boro) {
-   struct pop_entry *n;
-   //n = malloc(sizeof(struct pop_entry));
-   n = malloc(10000);
-
-   n->year = year;
-   n->population = pop;
-   strncpy(n->boro, boro, 100);
-   //n->boro = malloc(sizeof(boro));
-
-   return n;
-}
-
 void print_entry(struct pop_entry * p) {
-   printf("{year: %d\tpopulation: %d\tborough:%s\n}", p->year, p->population, p->boro);
+   printf("{year: %d\tpopulation: %d\tborough:%s}\n", p->year, p->population, p->boro);
 }
 
-// void print_entry() {
-//
-// }
-/*
-read entire csv and its size and put it into a char array and separate by \n then comma
-*/
-
-/*
-1. reads contents of csv and stores as struct pop_entry
-2. creates and writes structs into a new data file
-guessing that within each read, you write that struct into a new file
-use a loop and read only the amount of bytes per line each time??
-new file can be .data
-*/
-char * read_all_data(char * all) {
+int lineCounter() {
    int in = open("nyc_pop.csv", O_RDONLY);
-	if (in == -1) {
-		printf("There is an error with open:\n");
-		printf("%s\n", strerror(errno));
-		return 0;
-	}
-
-   //gets size of file
-   struct stat sb;
-   stat("nyc_pop.csv", &sb);
-   int sizeOfcsv = sb.st_size;
-   //printf("%d", sizeOfcsv);
-   //reads entire file into all
-	read(in, all, sizeOfcsv);
-	return all;
-}
-
-struct pop_entry ** make_datalist(int lines) {
-   struct pop_entry ** datalist;
-   //datalist = calloc(lines, sizeof(struct pop_entry *));
-   //datalist = calloc(lines, 1000);
-   datalist = calloc(10000, 10000);
-   return datalist;
-}
-
-struct pop_entry ** add_data(struct pop_entry **datalist, int year ,int pop, char * boro, int i) {
-   struct pop_entry *n = make_entry(year, pop, boro);
-   datalist[i] = n;
-   //printf("year is %d\tpop is %d\tboro is %s\n", datalist[i]->year, datalist[i]->population, datalist[i]->boro);
-   return datalist;
-}
-
-void ** print_list(struct pop_entry ** list) {
-   int i;
-   for (i = 0; i < sizeof(list);  i++) {
-      print_entry(list[i]);
+   char c;
+   int lines = 0;
+   while (read(in, &c ,1) != '\0'){
+      if (c == '\n'){
+         lines++;
+      }
    }
+   close(in);
+   return lines;
 }
 
-struct pop_entry ** read_csv(char * all) {
-   struct pop_entry ** datalist;
-
-   int i = 0;
-   int lineCount = 0;
-   while (all[i]) {
-      if (all[i] == '\n') lineCount++;
-      i++;
-   }
-   //-1 since it doesn't include the first line
-   datalist = make_datalist(lineCount-1);
-
-   //debug
-   printf("num of lines: %d\n", lineCount);
-
-   //resets i to beginning of all
-   i = 0;
-
-   //moves i to after the first line
-   while (all[i] != '\n') {
-      i++;
-   }
-   //printf("i is %d\n", i);
-
-   //moves i down one to next line
-   i ++;
-
-   printf("current char is %c\n", all[i]);
-   //index for datalist
-   int dataIndex = 0;
-
+void read_csv() {
+   int in = open("nyc_pop.csv", O_RDONLY);
+   int newfile = open("entries.data", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+   int numOfEntries = 0;
+   //int n;
+   //stores line
+   char buff[100];
+   //stores char
+   char c[2];
+   c[1] = '\0';
+   //data
+   int year;
    int line;
-   for (line = 0; line < lineCount-1; line++) {
-      //finds number of char in each line
-      // int charInLine = 0;
-      // printf("check\n");
-      // while(all[i] != '\n') {
-      //    charInLine++;
-      // }
-      //printf("check\n");
-      int col;
+   int totalLines = lineCounter();
+   for(line = 0; line < totalLines; line++) {
+      //so that read reads into c at first char
+      c[0] = '\0';
 
-      //data for pop_entry
-      int year;
-      int pop;
-      char boro[100];
-      //goes through each col on each line
-      for (col = 0; col < 6; col++) {
-         //printf("check\n");
-         char info[100] = "";
-         while(all[i] != ',' && all[i] != '\n') {
-            //printf("check\n");
-            //appending char all[i] to char * info
-            char c[2];
-            c[1] = '\0';
-            c[0] = all[i];
-            //printf("check: %s\n", c);
-            //if (all[i+1] == ',') printf("comma next");
-            strcat(info, c);
-            //strcat(info, (char[2]){all[i], 0});
-            i++;
+      //reads through line
+      int i;
+      for(i = 0; c[0] != '\n'; i++) {
+         int n;
+         n = read(in, c, 1);
+         //end of file
+         if (n == '\0') break;
+         //sets char of buff to the read in char
+         buff[i] = c[0];
+      }
+      //terminates string
+      buff[i] = '\0';
+
+      //array of pop_entry, 5 for 5 col in each line
+      struct pop_entry list[5];
+      //puts buff information into appropriate variables
+      //skips first line since that's just boroughs
+      if (line != 0) {
+         sscanf(buff, "%d,%d,%d,%d,%d,%d\n", &year, &list[0].population, &list[1].population, &list[2].population, &list[3].population, &list[4].population);
+         //printf("%d\n", list[0].population);
+         int a;
+         for(a = 0; a < 5; a++) {
+            list[a].year = year;
+            numOfEntries++;
          }
-         //printf("info is: %s\n", info);
-         //sets year
-         if (col == 0) {
-            year = atoi(info);
-            //printf("year is: %d\n", year);
-         }
-         //adds data to datalist
-         else {
-            if (col == 1) strcpy(boro, "Manhattan");
-            if (col == 2) strcpy(boro, "Brooklyn");
-            if (col == 3) strcpy(boro, "Queens");
-            if (col == 4) strcpy(boro, "Bronx");
-            if (col == 5) strcpy(boro, "Staten Island");
-            pop = atoi(info);
-            datalist = add_data(datalist, year, pop, boro, dataIndex);
-            //printf("dataindex is: %d\n", dataIndex);
-            dataIndex++;
-         }
-         //moves index from comma to next
-         i++;
+         strcpy(list[0].boro, "Manhattan");
+         strcpy(list[1].boro, "Brooklyn");
+         strcpy(list[2].boro, "Queens");
+         strcpy(list[3].boro, "Bronx");
+         strcpy(list[4].boro, "Staten Island");
+
+         write(newfile, list, sizeof(list));
+      }
+   }//end of loop through all lines
+   //printf("number of entries: %d\n", numOfEntries);
+   close(in);
+   close(newfile);
+}
+
+void read_data() {
+   int in = open("entries.data", O_RDONLY);
+   struct pop_entry buff;
+   int needed_size = sizeof(buff);
+   int current_size = sizeof(buff);
+   int i;
+   //it will have reached the end of the file if current_size isnt the needed size
+   for (i = 0; current_size == needed_size; i++) {
+      current_size = read(in, &buff, needed_size);
+      if(current_size == needed_size) {
+           printf("%d: ", i);
+           print_entry(&buff);
       }
    }
 }
 
-/*
-void read_csv() {
+void add_data() {
+   int in = open("entries.data", O_CREAT | O_WRONLY, 0644);
+   struct pop_entry ent;
+
+   int newYear = 0;
+   int newPop = 0;
+   char newBorough[100] = "";
+   //year
+   char nyear[100];
+   printf("Please enter new year as an integer: ");
+   fgets(nyear, sizeof(nyear)-1, stdin);
+   nyear[strlen(nyear)-1] = 0;
+   sscanf(nyear, "%d", &newYear);
+
+   //population
+   char npop[100];
+   printf("Please enter new population as an integer: ");
+   fgets(npop, sizeof(npop)-1, stdin);
+   npop[strlen(npop)-1] = 0;
+   //printf("\n");
+   sscanf(npop, "%d", &newPop);
+
+   //borough
+   printf("Please enter new borough as a string: ");
+   fgets(newBorough, sizeof(newBorough)-1, stdin);
+   newBorough[strlen(newBorough)-1] = 0;
+
+   ent.year = newYear;
+   ent.population = newPop;
+   strcpy(ent.boro, newBorough);
+
+   lseek(in, 0, SEEK_END);
+   write(in, &ent, sizeof(ent));
+
+   printf("File is updated.\n");
 }
 
-/*
-1. reads new data file into an array of struct pop_entry, allocated based on fiel size
-*/
-/*
-void read_data() {
-}
+void update_data() {
+   int entry = 0;
+   char e[100];
+   printf("Enter the entry number you want to change: ");
+   fgets(e, sizeof(e)-1, stdin);
+   e[strlen(e)-1] = 0;
+   sscanf(e, "%d", &entry);
 
-void display_data(){
+    int in = open("entries.data", O_CREAT | O_WRONLY, 0644);
+    struct pop_entry ent;
+
+    int newYear = 0;
+    int newPop = 0;
+    char newBorough[100] = "";
+    //year
+    char nyear[100];
+    printf("Please enter new year as an integer: ");
+    fgets(nyear, sizeof(nyear)-1, stdin);
+    nyear[strlen(nyear)-1] = 0;
+    sscanf(nyear, "%d", &newYear);
+
+    //population
+    char npop[100];
+    printf("Please enter new population as an integer: ");
+    fgets(npop, sizeof(npop)-1, stdin);
+    npop[strlen(npop)-1] = 0;
+    //printf("\n");
+    sscanf(npop, "%d", &newPop);
+
+    //borough
+    printf("Please enter new borough as a string: ");
+    fgets(newBorough, sizeof(newBorough)-1, stdin);
+    newBorough[strlen(newBorough)-1] = 0;
+
+    ent.year = newYear;
+    ent.population = newPop;
+    strcpy(ent.boro, newBorough);
+
+    lseek(in, entry*sizeof(struct pop_entry), 0);
+    write(in, &ent, sizeof(ent));
+
+    printf("File is updated.\n");
 }
-*/
 
 int main(int argc, char *argv[]) {
 	char flag[100];
@@ -202,16 +201,28 @@ int main(int argc, char *argv[]) {
    //printf("flag is: %s\n", flag);
    //yes it works
 
-   char all[951];
-   strcpy(all, read_all_data(all));
-   printf("%s \n", all);
+   //testing linecounter
+   //printf("LINES:%d\n", lineCounter());
+   //yes it works
 
-   //printf("%c \n", *all);
-   struct pop_entry ** datalist = make_datalist(100);
-   datalist = read_csv(all);
-   //printf("check\n");
-   //WHY IS THERE SEGMENTATION FAULT HERE????
-   print_entry(datalist[0]);
-
-   //print_list(datalist);
+   //read_csv(-1);
+   //read_csv(53);
+   //read_data();
+   if(strcmp(flag, "-update_data") == 0) {
+      read_data();
+      update_data();
+      //debug
+      //read_data();
+   }
+   else if (strcmp(flag, "-add_data") == 0) {
+      add_data();
+      //debug
+      //read_data();
+   }
+   else if (strcmp(flag, "-read_data") == 0) {
+      read_data();
+   }
+   else if (strcmp(flag, "-read_csv") == 0) {
+      read_csv();
+   }
 }
