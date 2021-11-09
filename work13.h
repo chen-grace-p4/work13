@@ -8,6 +8,8 @@ void print_entry(struct pop_entry * p);
 
 int lineCounter();
 
+long file_size(char *f);
+
 void read_csv();
 
 void read_data();

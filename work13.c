@@ -31,6 +31,12 @@ int lineCounter() {
    return lines;
 }
 
+long file_size(char *f) {
+   struct stat b;
+   stat(f,  &b);
+   return b.st_size;
+}
+
 void read_csv() {
    int in = open("nyc_pop.csv", O_RDONLY);
    int newfile = open("entries.data", O_CREAT | O_WRONLY | O_TRUNC, 0644);
@@ -90,27 +96,77 @@ void read_csv() {
 
 void read_data() {
    int in = open("entries.data", O_RDONLY);
-   struct pop_entry buff;
-   int needed_size = sizeof(buff);
-   int current_size = sizeof(buff);
-   int i;
-   //it will have reached the end of the file if current_size isnt the needed size
-   for (i = 0; current_size == needed_size; i++) {
-      current_size = read(in, &buff, needed_size);
-      if(current_size == needed_size) {
-           printf("%d: ", i);
-           print_entry(&buff);
-      }
+
+   int size = file_size("entries.data");
+   int entries = size / sizeof(struct pop_entry);
+   struct pop_entry *list = calloc(entries, sizeof(struct pop_entry));
+
+   int err = read(in, list, size);
+   if(err==-1){
+      printf("error reading file:%s\n", strerror(errno));
    }
+
+   int i;
+   for(i = 0;i < entries;i++){
+      printf("%d: ", i);
+      print_entry(&(list[i]));
+   }
+   free(list);
 }
 
 void add_data() {
-   int in = open("entries.data", O_CREAT | O_WRONLY, 0644);
    struct pop_entry ent;
 
    int newYear = 0;
    int newPop = 0;
    char newBorough[100] = "";
+
+   //year
+   char nyear[100];
+   printf("Please enter new year as an integer: ");
+   fgets(nyear, sizeof(nyear)-1, stdin);
+   nyear[strlen(nyear)-1] = 0;
+   sscanf(nyear, "%d", &newYear);
+
+   //population
+   char npop[100];
+   printf("Please enter new population as an integer: ");
+   fgets(npop, sizeof(npop)-1, stdin);
+   npop[strlen(npop)-1] = 0;
+   sscanf(npop, "%d", &newPop);
+
+   //borough
+   printf("Please enter new borough as a string: ");
+   fgets(newBorough, sizeof(newBorough)-1, stdin);
+   newBorough[strlen(newBorough)-1] = 0;
+
+   ent.year = newYear;
+   ent.population = newPop;
+   strcpy(ent.boro, newBorough);
+
+   int in = open("entries.data", O_WRONLY | O_APPEND);
+
+   write(in, &ent, sizeof(ent));
+
+   printf("File is updated.\n
+   close(in);
+}
+
+void update_data() {
+   int entry = 0;
+   char e[100];
+   printf("Enter the entry number you want to change: ");
+   fgets(e, sizeof(e)-1, stdin);
+   e[strlen(e)-1] = 0;
+   sscanf(e, "%d", &entry);
+
+   int in = open("entries.data", O_WRONLY);
+   struct pop_entry ent;
+
+   int newYear = 0;
+   int newPop = 0;
+   char newBorough[100] = "";
+
    //year
    char nyear[100];
    printf("Please enter new year as an integer: ");
@@ -135,52 +191,9 @@ void add_data() {
    ent.population = newPop;
    strcpy(ent.boro, newBorough);
 
-   lseek(in, 0, SEEK_END);
+   lseek(in, entry*sizeof(struct pop_entry), 0);
    write(in, &ent, sizeof(ent));
 
    printf("File is updated.\n");
-}
-
-void update_data() {
-   int entry = 0;
-   char e[100];
-   printf("Enter the entry number you want to change: ");
-   fgets(e, sizeof(e)-1, stdin);
-   e[strlen(e)-1] = 0;
-   sscanf(e, "%d", &entry);
-
-    int in = open("entries.data", O_CREAT | O_WRONLY, 0644);
-    struct pop_entry ent;
-
-    int newYear = 0;
-    int newPop = 0;
-    char newBorough[100] = "";
-    //year
-    char nyear[100];
-    printf("Please enter new year as an integer: ");
-    fgets(nyear, sizeof(nyear)-1, stdin);
-    nyear[strlen(nyear)-1] = 0;
-    sscanf(nyear, "%d", &newYear);
-
-    //population
-    char npop[100];
-    printf("Please enter new population as an integer: ");
-    fgets(npop, sizeof(npop)-1, stdin);
-    npop[strlen(npop)-1] = 0;
-    //printf("\n");
-    sscanf(npop, "%d", &newPop);
-
-    //borough
-    printf("Please enter new borough as a string: ");
-    fgets(newBorough, sizeof(newBorough)-1, stdin);
-    newBorough[strlen(newBorough)-1] = 0;
-
-    ent.year = newYear;
-    ent.population = newPop;
-    strcpy(ent.boro, newBorough);
-
-    lseek(in, entry*sizeof(struct pop_entry), 0);
-    write(in, &ent, sizeof(ent));
-
-    printf("File is updated.\n");
+   close(in);
 }
