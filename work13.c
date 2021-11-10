@@ -148,7 +148,7 @@ void add_data() {
 
    write(in, &ent, sizeof(ent));
 
-   printf("File is updated.\n
+   printf("File is updated.\n");
    close(in);
 }
 
